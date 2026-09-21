@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+
+  # Base 1 : vector store pour le RAG (procédures, consignes de sécurité)
+  db-vector:
+    image: pgvector/pgvector:pg16
+    container_name: maintenance-db-vector
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: rag_documents
+      POSTGRES_USER: rag_admin
+      POSTGRES_PASSWORD: rag_dev_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - db-vector-data:/var/lib/postgresql/data
+      - ./init-scripts/vector:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rag_admin -d rag_documents"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Base 2 : données structurées (composants, seuils, codes erreur) — accédée via le MCP server
+  db-structured:
+    image: postgres:16
+    container_name: maintenance-db-structured
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: maintenance
+      POSTGRES_USER: maintenance_admin
+      POSTGRES_PASSWORD: maintenance_dev_password
+    ports:
+      - "5434:5432"
+    volumes:
+      - db-structured-data:/var/lib/postgresql/data
+      - ./init-scripts/structured:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U maintenance_admin -d maintenance"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  db-vector-data:
+  db-structured-data:

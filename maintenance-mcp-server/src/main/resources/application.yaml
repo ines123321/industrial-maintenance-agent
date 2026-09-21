@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5434/maintenance
+    username: mcp_readonly
+    password: mcp_readonly_dev_password
+    driver-class-name: org.postgresql.Driver
+
+  ai:
+    mcp:
+      server:
+        name: maintenance-mcp-server
+        protocol: STREAMABLE
+        version: 0.0.1
+        type: SYNC
+        annotation-scanner:
+          enabled: true
+
+server:
+  port: 8081
+logging:
+  level:
+    org.springframework.ai.mcp: DEBUG

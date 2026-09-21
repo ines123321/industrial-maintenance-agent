@@ -1,0 +1,48 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/rag_documents
+    username: rag_admin
+    password: rag_dev_password
+    driver-class-name: org.postgresql.Driver
+
+  ai:
+    model:
+      embedding: transformers
+
+    openai:
+      api-key: ${GROQ_API_KEY}
+      base-url: https://api.groq.com/openai/v1
+      chat:
+        options:
+          model: openai/gpt-oss-20b
+          temperature: 0.1
+
+    embedding:
+      transformer:
+        onnx:
+          model-uri: https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/onnx/model.onnx
+        tokenizer:
+          uri: https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer.json
+
+    vectorstore:
+      pgvector:
+        initialize-schema: true
+        dimensions: 384
+        index-type: HNSW
+
+    mcp:
+      client:
+        toolcallback:
+          enabled: true
+        streamable-http:
+          connections:
+            maintenance:
+              url: http://localhost:8081
+
+server:
+  port: 8080
+logging:
+  level:
+    org.springframework.ai.openai: DEBUG
+    org.springframework.ai.chat.client: DEBUG
+    org.springframework.ai.mcp: DEBUG

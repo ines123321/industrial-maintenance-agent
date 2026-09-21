@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.4.xsd">
+
+    <suppress>
+    <notes><![CDATA[
+    Faux positif : CVE-2026-53914 concerne le plugin Gradle de compilation Kotlin
+    (déserialisation non sécurisée dans le cache de build), pas les bibliothèques
+    runtime Kotlin (kotlin-stdlib, kotlin-reflect, etc.) utilisées ici comme
+    dépendances transitives. Le score officiel NVD est 6.7 (medium), pas 9.8.
+    Aucune fonctionnalité de compilation Gradle n'est utilisée dans ce projet
+    en production.
+    Réf : https://nvd.nist.gov/vuln/detail/CVE-2026-53914
+    ]]></notes>
+    <packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/.*$</packageUrl>
+    <cve>CVE-2026-53914</cve>
+</suppress>
+
+    <suppress>
+        <notes><![CDATA[
+        Faux positif : CVE-2020-29582 concerne le compilateur/IDE Kotlin (ancienne
+        CVE de 2020), pas la bibliothèque kotlin-stdlib-common utilisée en runtime.
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/kotlin\-stdlib\-common.*$</packageUrl>
+        <cve>CVE-2020-29582</cve>
+    </suppress>
+
+    <suppress>
+        <notes><![CDATA[
+        Faux positif : CVE-2026-18022 concerne l'extension PostgreSQL en C
+        "pgvector" (code serveur, ivfkmeans.c), un projet distinct de la
+        bibliothèque cliente Java com.pgvector:pgvector utilisée ici pour
+        envoyer des vecteurs depuis l'application Java. Confusion de nommage
+        entre deux projets différents partageant le même nom.
+        Réf : https://github.com/pgvector/pgvector/issues/1006
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/com\.pgvector/pgvector.*$</packageUrl>
+        <cve>CVE-2026-18022</cve>
+    </suppress>
+
+</suppressions>
