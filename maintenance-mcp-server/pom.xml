@@ -29,6 +29,9 @@
 	<properties>
 		<java.version>25</java.version>
 		<tomcat.version>11.0.25</tomcat.version>
+		 <sonar.organization>ines123321</sonar.organization>
+		<sonar.projectKey>maintenance-mcp-server</sonar.projectKey>
+    	<sonar.host.url>https://sonarcloud.io</sonar.host.url>
 	</properties>
 	<dependencies>
 		<dependency>
