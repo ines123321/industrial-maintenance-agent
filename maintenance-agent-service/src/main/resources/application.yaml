@@ -10,7 +10,7 @@ spring:
       embedding: transformers
 
     openai:
-      api-key: ${GROQ_API_KEY}w
+      api-key: ${GROQ_API_KEY}
       base-url: https://api.groq.com/openai/v1
       chat:
         options:

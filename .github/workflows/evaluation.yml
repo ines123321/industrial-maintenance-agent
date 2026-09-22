@@ -1,0 +1,79 @@
+name: Evaluation
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+
+jobs:
+  evaluation:
+    name: Evaluation complete (RAG + MCP + tests coûteux)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Installer Java 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Démarrer les bases Postgres (infra)
+        working-directory: infra
+        run: docker compose up -d
+
+      - name: Attendre que les deux bases soient prêtes
+        working-directory: infra
+        run: |
+          until docker compose exec -T db-vector pg_isready -U rag_admin -d rag_documents; do
+            echo "En attente de db-vector..."
+            sleep 3
+          done
+          until docker compose exec -T db-structured pg_isready -U maintenance_admin -d maintenance; do
+            echo "En attente de db-structured..."
+            sleep 3
+          done
+
+      - name: Compiler le MCP server
+        working-directory: maintenance-mcp-server
+        run: mvn -DskipTests package
+
+      - name: Démarrer le MCP server en arrière-plan
+        working-directory: maintenance-mcp-server
+        run: |
+          nohup java -jar target/*.jar > mcp-server.log 2>&1 &
+          echo "MCP server lancé, PID $!"
+
+      - name: Attendre que le MCP server soit prêt (port 8081)
+        run: |
+          for i in $(seq 1 30); do
+            if curl -s http://localhost:8081/mcp > /dev/null || nc -z localhost 8081; then
+              echo "MCP server prêt."
+              exit 0
+            fi
+            echo "En attente du MCP server... ($i/30)"
+            sleep 3
+          done
+          echo "Le MCP server n'a pas démarré à temps."
+          cat maintenance-mcp-server/mcp-server.log
+          exit 1
+
+      - name: Lancer les tests coûteux de l'agent (contextLoads + évaluation Groq)
+        working-directory: maintenance-agent-service
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: >
+          mvn test
+          -Dtest=MaintenanceAgentServiceApplicationTests,AgentEvaluationTest
+
+      - name: Lancer le test contextLoads du MCP server
+        working-directory: maintenance-mcp-server
+        run: mvn test -Dtest=MaintenanceMcpServerApplicationTests
+
+      - name: Arrêter les conteneurs
+        if: always()
+        working-directory: infra
+        run: docker compose down
