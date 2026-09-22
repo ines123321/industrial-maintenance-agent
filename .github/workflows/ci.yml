@@ -33,6 +33,14 @@ jobs:
           -Dtest=!MaintenanceAgentServiceApplicationTests,!AgentEvaluationTest
           -DfailIfNoTests=false
 
+      - name: Cache de la base NVD (Dependency-Check)
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: nvd-data-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            nvd-data-${{ runner.os }}-
+
       - name: OWASP Dependency-Check
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
@@ -71,6 +79,14 @@ jobs:
           mvn verify
           -Dtest=!MaintenanceMcpServerApplicationTests
           -DfailIfNoTests=false
+
+      - name: Cache de la base NVD (Dependency-Check)
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: nvd-data-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            nvd-data-${{ runner.os }}-
 
       - name: OWASP Dependency-Check
         env:
