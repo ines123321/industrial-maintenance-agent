@@ -50,9 +50,11 @@ jobs:
 
       - name: Compiler et démarrer l'agent service (profil dast — sans Groq)
         working-directory: maintenance-agent-service
+        env:
+          GROQ_API_KEY: dummy-not-used-in-dast
         run: |
           mvn -DskipTests package
-          nohup java -jar -Dspring.profiles.active=dast target/*.jar > agent-service.log 2>&1 &
+          nohup java -Dspring.profiles.active=dast -jar target/*.jar > agent-service.log 2>&1 &
 
       - name: Attendre que l'agent service soit prêt (port 8080)
         run: |
