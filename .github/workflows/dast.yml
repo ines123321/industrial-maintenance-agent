@@ -71,6 +71,14 @@ jobs:
           target: 'maintenance-agent-service/openapi/chat-api.yaml'
           format: openapi
           fail_action: false
+          allow_issue_writing: false
+      
+      - name: Upload logs de l'agent service
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-service-logs
+          path: maintenance-agent-service/agent-service.log
 
       - name: Arrêter les conteneurs
         if: always()
