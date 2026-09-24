@@ -1,0 +1,76 @@
+name: DAST
+
+on:
+  workflow_dispatch:
+
+jobs:
+  zap-api-scan:
+    name: OWASP ZAP API Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Installer Java 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Démarrer les bases Postgres (infra)
+        working-directory: infra
+        run: docker compose up -d
+
+      - name: Attendre que les deux bases soient prêtes
+        working-directory: infra
+        run: |
+          until docker compose exec -T db-vector pg_isready -U rag_admin -d rag_documents; do
+            sleep 3
+          done
+          until docker compose exec -T db-structured pg_isready -U maintenance_admin -d maintenance; do
+            sleep 3
+          done
+
+      - name: Compiler et démarrer le MCP server
+        working-directory: maintenance-mcp-server
+        run: |
+          mvn -DskipTests package
+          nohup java -jar target/*.jar > mcp-server.log 2>&1 &
+
+      - name: Attendre que le MCP server soit prêt (port 8081)
+        run: |
+          for i in $(seq 1 30); do
+            nc -z localhost 8081 && exit 0
+            sleep 3
+          done
+          cat maintenance-mcp-server/mcp-server.log
+          exit 1
+
+      - name: Compiler et démarrer l'agent service (profil dast — sans Groq)
+        working-directory: maintenance-agent-service
+        run: |
+          mvn -DskipTests package
+          nohup java -jar -Dspring.profiles.active=dast target/*.jar > agent-service.log 2>&1 &
+
+      - name: Attendre que l'agent service soit prêt (port 8080)
+        run: |
+          for i in $(seq 1 30); do
+            nc -z localhost 8080 && exit 0
+            sleep 3
+          done
+          cat maintenance-agent-service/agent-service.log
+          exit 1
+
+      - name: OWASP ZAP API Scan
+        uses: zaproxy/action-api-scan@v0.9.0
+        with:
+          target: 'maintenance-agent-service/openapi/chat-api.yaml'
+          format: openapi
+          fail_action: false
+
+      - name: Arrêter les conteneurs
+        if: always()
+        working-directory: infra
+        run: docker compose down

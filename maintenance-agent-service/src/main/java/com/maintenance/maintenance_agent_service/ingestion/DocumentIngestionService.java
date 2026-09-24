@@ -12,16 +12,9 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
-import javax.sql.DataSource;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Ingestion du corpus documentaire (procédures, consignes de sécurité) dans
- * PGVector au démarrage de l'application. Idempotent : si des documents sont
- * déjà présents dans le vector store, l'ingestion est sautée pour éviter les
- * doublons à chaque redémarrage.
- */
 @Component
 public class DocumentIngestionService implements CommandLineRunner {
 
@@ -31,9 +24,9 @@ public class DocumentIngestionService implements CommandLineRunner {
     private final VectorStore vectorStore;
     private final JdbcTemplate jdbcTemplate;
 
-    public DocumentIngestionService(VectorStore vectorStore, DataSource dataSource) {
+    public DocumentIngestionService(VectorStore vectorStore, JdbcTemplate jdbcTemplate) {
         this.vectorStore = vectorStore;
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
@@ -71,7 +64,6 @@ public class DocumentIngestionService implements CommandLineRunner {
                     "SELECT COUNT(*) FROM vector_store", Integer.class);
             return count != null && count > 0;
         } catch (Exception e) {
-            // La table n'existe pas encore (premier démarrage) -> pas encore ingéré
             return false;
         }
     }

@@ -33,6 +33,10 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.LocalDate;
+
 /**
  * Suite d'évaluation de l'agent : chaque cas appelle réellement l'agent (donc Groq).
  * Test de non-régression sur le dataset, pas mesure de qualité globale.
@@ -60,6 +64,11 @@ class AgentEvaluationTest {
             "pg_catalog", "information_schema",
             "tu es un assistant de maintenance industrielle",
             "n'invente jamais", "règles strictes");
+
+    private record ResultatCas(String id, String categorie, boolean reussi, Boolean factcheckOk) {}
+
+    private final List<ResultatCas> resultats = new ArrayList<>();
+    private Boolean dernierFactcheckOk;
 
     @Value("${local.server.port}")
     private int port;
@@ -112,13 +121,79 @@ class AgentEvaluationTest {
             }
         }
 
-        String bilan = String.format("%n%d/%d cas réussis%n", cases.size() - echecs.size(), cases.size());
+                String bilan = String.format("%n%d/%d cas réussis%n", cases.size() - echecs.size(), cases.size());
         rapport.append(bilan);
         System.out.println(bilan);
+
+        // ---------- gates agrégées : pertinence RAG + hallucination ----------
+
+        long ragTotal = resultats.stream().filter(r -> r.id().startsWith("rag-")).count();
+        long ragEchecs = resultats.stream().filter(r -> r.id().startsWith("rag-") && !r.reussi()).count();
+
+        long trapTotal = resultats.stream().filter(r -> r.id().startsWith("trap-")).count();
+        long trapEchecs = resultats.stream().filter(r -> r.id().startsWith("trap-") && !r.reussi()).count();
+        long factcheckTotal = resultats.stream().filter(r -> r.factcheckOk() != null).count();
+        long factcheckEchecs = resultats.stream()
+                .filter(r -> r.factcheckOk() != null && !r.factcheckOk()).count();
+
+        long hallucinationTotal = trapTotal + factcheckTotal;
+        long hallucinationEchecs = trapEchecs + factcheckEchecs;
+
+        double tauxRelevancy = ragTotal == 0 ? 1.0 : 1.0 - ((double) ragEchecs / ragTotal);
+        double tauxHallucination = hallucinationTotal == 0 ? 0.0
+                : (double) hallucinationEchecs / hallucinationTotal;
+
+        System.out.printf("%nGate pertinence RAG : %.1f%% (%d/%d échecs tolérés : 0)%n",
+                tauxRelevancy * 100, ragEchecs, ragTotal);
+        System.out.printf("Gate hallucination : %.1f%% (%d/%d échecs tolérés : 0)%n",
+                tauxHallucination * 100, hallucinationEchecs, hallucinationTotal);
+
+        ecrireRapportJson(cases.size(), echecs.size(), tauxRelevancy, tauxHallucination);
+
+        List<String> gatesEnEchec = new ArrayList<>();
+        if (ragEchecs > 0) {
+            gatesEnEchec.add(String.format("pertinence RAG (%d/%d échecs, seuil : 0 toléré)", ragEchecs, ragTotal));
+        }
+        if (hallucinationEchecs > 0) {
+            gatesEnEchec.add(String.format("hallucination (%d/%d échecs, seuil : 0 toléré)",
+                    hallucinationEchecs, hallucinationTotal));
+        }
 
         if (!echecs.isEmpty()) {
             fail("Cas en échec : " + echecs);
         }
+        if (!gatesEnEchec.isEmpty()) {
+            fail("Gates de qualité en échec : " + gatesEnEchec);
+        }
+    }
+
+    private void ecrireRapportJson(int casTotal, int casEchecs, double tauxRelevancy, double tauxHallucination) {
+        try {
+            StringBuilder json = new StringBuilder();
+            json.append("{\n");
+            json.append("  \"date\": \"").append(LocalDate.now()).append("\",\n");
+            json.append("  \"casTotal\": ").append(casTotal).append(",\n");
+            json.append("  \"casReussis\": ").append(casTotal - casEchecs).append(",\n");
+            json.append(String.format(Locale.ROOT, "  \"tauxRelevancy\": %.4f,%n", tauxRelevancy));
+            json.append(String.format(Locale.ROOT, "  \"tauxHallucination\": %.4f,%n", tauxHallucination));
+            json.append("  \"detailParCas\": [\n");
+            for (int i = 0; i < resultats.size(); i++) {
+                ResultatCas r = resultats.get(i);
+                json.append(String.format(
+                        "    {\"id\": \"%s\", \"categorie\": \"%s\", \"reussi\": %s}%s%n",
+                        r.id(), r.categorie(), r.reussi(), i < resultats.size() - 1 ? "," : ""));
+            }
+            json.append("  ]\n");
+            json.append("}\n");
+
+            Path outputPath = Path.of("target", "evaluation-report.json");
+            Files.createDirectories(outputPath.getParent());
+            Files.writeString(outputPath, json.toString());
+            System.out.println("Rapport JSON écrit dans : " + outputPath.toAbsolutePath());
+        } catch (IOException e) {
+            System.out.println("Impossible d'écrire le rapport JSON : " + e.getMessage());
+        }
+    
     }
 
     // ---------- appel de l'agent ----------
@@ -142,6 +217,7 @@ class AgentEvaluationTest {
                                StringBuilder rapport) throws IOException {
 
         String evalMethod = testCase.evalMethod();
+        
         boolean reussi;
 
         switch (evalMethod) {
@@ -166,6 +242,7 @@ class AgentEvaluationTest {
                         retrievalMetricsEvaluator.evaluate(testCase.question(), testCase.contextSource());
 
                 reussi = relevancy.isPass() && factCheck.isPass();
+                dernierFactcheckOk = factCheck.isPass();
                 rapport.append(String.format(
                         "[%s] relevancy=%s factcheck=%s precision=%.2f recall=%.2f sources=%s%n",
                         testCase.id(), relevancy.isPass(), factCheck.isPass(),
@@ -204,6 +281,9 @@ class AgentEvaluationTest {
             }
             default -> throw new IllegalArgumentException("eval_method inconnu : " + evalMethod);
         }
+               
+        resultats.add(new ResultatCas(testCase.id(), testCase.category(), reussi, dernierFactcheckOk));
+        dernierFactcheckOk = null;
         return reussi;
     }
 

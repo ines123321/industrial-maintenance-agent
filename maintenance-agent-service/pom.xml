@@ -111,6 +111,37 @@
         </suppressionFiles>
     </configuration>
 </plugin>
+<plugin>
+    <groupId>org.jacoco</groupId>
+    <artifactId>jacoco-maven-plugin</artifactId>
+    <version>0.8.13</version>
+    <executions>
+        <execution>
+    <id>check</id>
+    <phase>verify</phase>
+    <goals>
+        <goal>check</goal>
+    </goals>
+    <configuration>
+        <excludes>
+            <exclude>**/MaintenanceAgentServiceApplication.class</exclude>
+        </excludes>
+        <rules>
+            <rule>
+                <element>BUNDLE</element>
+                <limits>
+                    <limit>
+                        <counter>INSTRUCTION</counter>
+                        <value>COVEREDRATIO</value>
+                        <minimum>0.65</minimum>
+                    </limit>
+                </limits>
+            </rule>
+        </rules>
+    </configuration>
+</execution>
+    </executions>
+</plugin>
 		</plugins>
 	</build>
 

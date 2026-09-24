@@ -1,0 +1,31 @@
+openapi: 3.0.3
+info:
+  title: Maintenance Agent Chat API
+  version: "1.0"
+servers:
+  - url: http://localhost:8080
+paths:
+  /api/chat:
+    post:
+      operationId: askChat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [question]
+              properties:
+                question:
+                  type: string
+                  example: "Quel est le seuil de vibration du moteur M12 ?"
+      responses:
+        "200":
+          description: Réponse générée
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  answer:
+                    type: string

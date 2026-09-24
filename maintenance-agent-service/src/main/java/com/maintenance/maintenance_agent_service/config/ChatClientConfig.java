@@ -5,16 +5,19 @@ import java.util.Map;
 import io.micrometer.observation.ObservationRegistry;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
+import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.context.annotation.Profile;
+
 @Configuration
 public class ChatClientConfig {
 
@@ -52,31 +55,32 @@ public class ChatClientConfig {
             """;
 
     @Bean
-public OpenAiChatModel maintenanceChatModel(
-        @Value("${spring.ai.openai.api-key}") String apiKey,
-        @Value("${spring.ai.openai.base-url}") String baseUrl,
-        @Value("${spring.ai.openai.chat.options.model}") String model,
-        ObjectProvider<ObservationRegistry> observationRegistry) {
+    @Profile("!dast")
+    public OpenAiChatModel maintenanceChatModel(
+            @Value("${spring.ai.openai.api-key}") String apiKey,
+            @Value("${spring.ai.openai.base-url}") String baseUrl,
+            @Value("${spring.ai.openai.chat.options.model}") String model,
+            ObjectProvider<ObservationRegistry> observationRegistry) {
 
-    OpenAiChatOptions options = OpenAiChatOptions.builder()
-            .apiKey(apiKey)
-            .baseUrl(baseUrl)
-            .model(model)
-            .temperature(0.1)
-            .reasoningEffort("medium")
-            .maxCompletionTokens(2000)
-            .maxRetries(3)
-            .extraBody(Map.of("include_reasoning", false))
-            .build();
+        OpenAiChatOptions options = OpenAiChatOptions.builder()
+                .apiKey(apiKey)
+                .baseUrl(baseUrl)
+                .model(model)
+                .temperature(0.1)
+                .reasoningEffort("medium")
+                .maxCompletionTokens(2000)
+                .maxRetries(3)
+                .extraBody(Map.of("include_reasoning", false))
+                .build();
 
-    return OpenAiChatModel.builder()
-            .options(options)
-            .observationRegistry(observationRegistry.getIfAvailable(() -> ObservationRegistry.NOOP))
-            .build();
-}
+        return OpenAiChatModel.builder()
+                .options(options)
+                .observationRegistry(observationRegistry.getIfAvailable(() -> ObservationRegistry.NOOP))
+                .build();
+    }
 
     @Bean
-    public ChatClient chatClient(OpenAiChatModel maintenanceChatModel,
+    public ChatClient chatClient(ChatModel maintenanceChatModel,
                                  VectorStore vectorStore,
                                  ToolCallbackProvider mcpTools) {
 
