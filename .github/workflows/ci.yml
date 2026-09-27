@@ -88,9 +88,19 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
           git add reports/security.json
-          git diff --cached --quiet || (git commit -m "chore: update security.json [skip ci]" && git push)
-
+          if git diff --cached --quiet; then
+            echo "Rien à committer."
+          else
+            git commit -m "chore: update security.json [skip ci]"
+            for i in 1 2 3 4 5; do
+              git pull --rebase origin main && git push && break
+              echo "Push refusé, nouvelle tentative dans quelques secondes..."
+              sleep $((RANDOM % 5 + 2))
+            done
+          fi
+      
       - name: Extraire et committer les résultats de tests (agent-service)
         if: always()
         working-directory: .
