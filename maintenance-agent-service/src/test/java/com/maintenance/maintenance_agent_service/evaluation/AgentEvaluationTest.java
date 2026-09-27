@@ -207,7 +207,7 @@ class AgentEvaluationTest {
                 "{\"date\":\"%s\",\"commitSha\":\"%s\",\"casTotal\":%d,\"casReussis\":%d,\"tauxRelevancy\":%.4f,\"tauxHallucination\":%.4f}%n",
                 LocalDate.now(), shaCourt, casTotal, casTotal - casEchecs, tauxRelevancy, tauxHallucination);
 
-        Path historyPath = Path.of("reports", "history.jsonl");
+        Path historyPath = Path.of("..", "reports", "history.jsonl");
         Files.createDirectories(historyPath.getParent());
         Files.writeString(historyPath, ligne,
                 java.nio.file.StandardOpenOption.CREATE,
