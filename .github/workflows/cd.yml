@@ -1,0 +1,83 @@
+name: CD
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build-and-push-agent-service:
+    name: Build & Push - maintenance-agent-service
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Déterminer le tag de version
+        id: version
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=manual-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Se connecter à GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build et push de l'image (agent-service)
+        uses: docker/build-push-action@v6
+        with:
+          context: maintenance-agent-service
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository }}/maintenance-agent-service:latest
+            ${{ env.REGISTRY }}/${{ github.repository }}/maintenance-agent-service:${{ steps.version.outputs.tag }}
+
+  build-and-push-mcp-server:
+    name: Build & Push - maintenance-mcp-server
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Déterminer le tag de version
+        id: version
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=manual-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Se connecter à GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build et push de l'image (mcp-server)
+        uses: docker/build-push-action@v6
+        with:
+          context: maintenance-mcp-server
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository }}/maintenance-mcp-server:latest
+            ${{ env.REGISTRY }}/${{ github.repository }}/maintenance-mcp-server:${{ steps.version.outputs.tag }}
