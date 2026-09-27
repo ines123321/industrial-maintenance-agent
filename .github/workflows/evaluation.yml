@@ -68,6 +68,20 @@ jobs:
         run: >
           mvn test
           -Dtest=MaintenanceAgentServiceApplicationTests,AgentEvaluationTest
+          
+      - name: Committer l'historique des évaluations
+        if: always()
+        working-directory: maintenance-agent-service
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add reports/history.jsonl
+          if git diff --cached --quiet; then
+            echo "Aucun changement dans history.jsonl, rien à committer."
+          else
+            git commit -m "chore: mise à jour history.jsonl [skip ci]"
+            git push
+          fi
 
       - name: Lancer le test contextLoads du MCP server
         working-directory: maintenance-mcp-server

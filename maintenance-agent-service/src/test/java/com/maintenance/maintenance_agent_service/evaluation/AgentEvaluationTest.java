@@ -193,8 +193,30 @@ class AgentEvaluationTest {
         } catch (IOException e) {
             System.out.println("Impossible d'écrire le rapport JSON : " + e.getMessage());
         }
+
+        ecrireHistoriqueJsonl(casTotal, casEchecs, tauxRelevancy, tauxHallucination);
     
     }
+
+    private void ecrireHistoriqueJsonl(int casTotal, int casEchecs, double tauxRelevancy, double tauxHallucination) {
+    try {
+        String commitSha = System.getenv().getOrDefault("GITHUB_SHA", "local");
+        String shaCourt = commitSha.length() >= 7 ? commitSha.substring(0, 7) : commitSha;
+
+        String ligne = String.format(Locale.ROOT,
+                "{\"date\":\"%s\",\"commitSha\":\"%s\",\"casTotal\":%d,\"casReussis\":%d,\"tauxRelevancy\":%.4f,\"tauxHallucination\":%.4f}%n",
+                LocalDate.now(), shaCourt, casTotal, casTotal - casEchecs, tauxRelevancy, tauxHallucination);
+
+        Path historyPath = Path.of("reports", "history.jsonl");
+        Files.createDirectories(historyPath.getParent());
+        Files.writeString(historyPath, ligne,
+                java.nio.file.StandardOpenOption.CREATE,
+                java.nio.file.StandardOpenOption.APPEND);
+        System.out.println("Historique mis à jour : " + historyPath.toAbsolutePath());
+    } catch (IOException e) {
+        System.out.println("Impossible d'écrire l'historique : " + e.getMessage());
+    }
+}
 
     // ---------- appel de l'agent ----------
 
