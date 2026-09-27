@@ -1,18 +1,18 @@
 {
   "lastUpdated": "2026-09-27",
-  "commitSha": "4cd21d0",
+  "commitSha": "75dde1a",
   "modules": [
-    {
-      "name": "maintenance-mcp-server",
-      "total": 33,
-      "passed": 33,
-      "failed": 0,
-      "skipped": 0
-    },
     {
       "name": "maintenance-agent-service",
       "total": 5,
       "passed": 5,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "maintenance-mcp-server",
+      "total": 33,
+      "passed": 33,
       "failed": 0,
       "skipped": 0
     }
