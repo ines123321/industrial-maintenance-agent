@@ -100,3 +100,30 @@ jobs:
           mvn org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
           -Dsonar.token=${{ secrets.SONAR_TOKEN }}
           -Dsonar.qualitygate.wait=true
+
+      - name: Extraire les métriques SonarCloud
+        run: |
+          RESULT=$(curl -s "https://sonarcloud.io/api/measures/component?component=maintenance-agent-service&metricKeys=blocker_violations,critical_violations,major_violations,minor_violations")
+          BLOCKER=$(echo "$RESULT" | jq -r '[.component.measures[] | select(.metric=="blocker_violations")][0].value // "0"')
+          CRITICAL=$(echo "$RESULT" | jq -r '[.component.measures[] | select(.metric=="critical_violations")][0].value // "0"')
+          MAJOR=$(echo "$RESULT" | jq -r '[.component.measures[] | select(.metric=="major_violations")][0].value // "0"')
+          MINOR=$(echo "$RESULT" | jq -r '[.component.measures[] | select(.metric=="minor_violations")][0].value // "0"')
+          CRIT_TOTAL=$((BLOCKER + CRITICAL))
+          bash scripts/update-security-json.sh "SonarQube" "$CRIT_TOTAL" "$MAJOR" "$MINOR" 0 "PASS"
+
+      - name: Extraire les métriques Dependency-Check
+        run: |
+          FICHIER="maintenance-agent-service/target/dependency-check-report.json"
+          C=$(jq '[.dependencies[]?.vulnerabilities[]?.severity] | map(select(.=="CRITICAL")) | length' "$FICHIER")
+          H=$(jq '[.dependencies[]?.vulnerabilities[]?.severity] | map(select(.=="HIGH")) | length' "$FICHIER")
+          M=$(jq '[.dependencies[]?.vulnerabilities[]?.severity] | map(select(.=="MEDIUM")) | length' "$FICHIER")
+          L=$(jq '[.dependencies[]?.vulnerabilities[]?.severity] | map(select(.=="LOW")) | length' "$FICHIER")
+          bash scripts/update-security-json.sh "Dependency-Check" "$C" "$H" "$M" "$L" "PASS"
+          
+      - name: Committer security.json (Sonar + Dependency-Check)
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add reports/security.json
+          git diff --cached --quiet || (git commit -m "chore: update security.json [skip ci]" && git push)
