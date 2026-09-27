@@ -91,6 +91,33 @@ jobs:
           git add reports/security.json
           git diff --cached --quiet || (git commit -m "chore: update security.json [skip ci]" && git push)
 
+      - name: Extraire et committer les résultats de tests (agent-service)
+        if: always()
+        working-directory: .
+        run: |
+          DOSSIER="maintenance-agent-service/target/surefire-reports"
+          TOTAL=$(grep -ohP 'tests="\K[0-9]+' "$DOSSIER"/TEST-*.xml 2>/dev/null | awk '{s+=$1} END{print s+0}')
+          FAILURES=$(grep -ohP 'failures="\K[0-9]+' "$DOSSIER"/TEST-*.xml 2>/dev/null | awk '{s+=$1} END{print s+0}')
+          ERRORS=$(grep -ohP 'errors="\K[0-9]+' "$DOSSIER"/TEST-*.xml 2>/dev/null | awk '{s+=$1} END{print s+0}')
+          SKIPPED=$(grep -ohP 'skipped="\K[0-9]+' "$DOSSIER"/TEST-*.xml 2>/dev/null | awk '{s+=$1} END{print s+0}')
+          FAILED=$((FAILURES + ERRORS))
+          PASSED=$((TOTAL - FAILED - SKIPPED))
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          bash scripts/update-tests-json.sh "maintenance-agent-service" "$TOTAL" "$PASSED" "$FAILED" "$SKIPPED"
+          git add reports/tests.json
+          if git diff --cached --quiet; then
+            echo "Rien à committer."
+          else
+            git commit -m "chore: update tests.json (agent-service) [skip ci]"
+            for i in 1 2 3 4 5; do
+              git pull --rebase origin main && git push && break
+              echo "Push refusé, nouvelle tentative dans quelques secondes..."
+              sleep $((RANDOM % 5 + 2))
+            done
+          fi
   mcp-server:
     name: Build & Analyze - maintenance-mcp-server
     runs-on: ubuntu-latest
@@ -137,3 +164,30 @@ jobs:
           mvn org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
           -Dsonar.token=${{ secrets.SONAR_TOKEN }}
           -Dsonar.qualitygate.wait=true
+      - name: Extraire et committer les résultats de tests (mcp-server)
+        if: always()
+        working-directory: .
+        run: |
+          DOSSIER="maintenance-mcp-server/target/surefire-reports"
+          TOTAL=$(grep -ohP 'tests="\K[0-9]+' "$DOSSIER"/TEST-*.xml 2>/dev/null | awk '{s+=$1} END{print s+0}')
+          FAILURES=$(grep -ohP 'failures="\K[0-9]+' "$DOSSIER"/TEST-*.xml 2>/dev/null | awk '{s+=$1} END{print s+0}')
+          ERRORS=$(grep -ohP 'errors="\K[0-9]+' "$DOSSIER"/TEST-*.xml 2>/dev/null | awk '{s+=$1} END{print s+0}')
+          SKIPPED=$(grep -ohP 'skipped="\K[0-9]+' "$DOSSIER"/TEST-*.xml 2>/dev/null | awk '{s+=$1} END{print s+0}')
+          FAILED=$((FAILURES + ERRORS))
+          PASSED=$((TOTAL - FAILED - SKIPPED))
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          bash scripts/update-tests-json.sh "maintenance-mcp-server" "$TOTAL" "$PASSED" "$FAILED" "$SKIPPED"
+          git add reports/tests.json
+          if git diff --cached --quiet; then
+            echo "Rien à committer."
+          else
+            git commit -m "chore: update tests.json (mcp-server) [skip ci]"
+            for i in 1 2 3 4 5; do
+              git pull --rebase origin main && git push && break
+              echo "Push refusé, nouvelle tentative dans quelques secondes..."
+              sleep $((RANDOM % 5 + 2))
+            done
+          fi
