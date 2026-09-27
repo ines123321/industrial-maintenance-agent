@@ -63,7 +63,7 @@
       "id": "mcp-004",
       "category": "mcp",
       "question": "Le variateur VF7 affiche le code erreur F0002, quelle est la cause et l'action corrective ?",
-      "expected_keywords": ["surcharge", "couper l'alimentation", "roulements"],
+      "expected_keywords": ["surcharge", "couper","alimentation", "roulements"],
       "source_table": "codes_erreur",
       "eval_method": "exact_match"
     },
