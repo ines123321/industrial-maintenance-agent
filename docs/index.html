@@ -104,6 +104,22 @@
   .placeholder { color: var(--text-dim); font-style: italic; padding: 40px 0; text-align: center; }
   a { color: var(--accent); }
   #erreur-globale { display: none; background: rgba(248,81,73,0.1); border: 1px solid var(--fail); color: var(--fail); padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 0.9rem; }
+  .module-bloc { margin-bottom: 20px; }
+  .module-bloc:last-child { margin-bottom: 0; }
+  .module-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .module-header .nom { font-weight: 600; font-size: 0.92rem; }
+  .module-header .chiffre { font-size: 0.85rem; color: var(--text-dim); }
+  .barre { display: flex; height: 10px; border-radius: 6px; overflow: hidden; background: var(--border); }
+  .barre .passed { background: var(--ok); }
+  .barre .failed { background: var(--fail); }
+  .barre .skipped { background: var(--warn); }
+  .panel img[alt$="status"] {
+    background: white;
+    padding: 3px 6px;
+    border-radius: 4px;
+    display: inline-block;
+  }
+
 </style>
 </head>
 <body>
@@ -173,21 +189,114 @@
   <section class="section" id="section-security">
     <div class="section-title">Security</div>
     <div class="section-subtitle">SAST (SonarCloud, Dependency-Check) + DAST (OWASP ZAP)</div>
-    <div class="placeholder">Section en construction — prochaine étape</div>
+
+    <div class="cards" id="security-cartes"></div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <h3>Répartition des vulnérabilités par sévérité</h3>
+        <canvas id="security-donut" height="200"></canvas>
+      </div>
+      <div class="panel">
+        <h3>Détail par outil</h3>
+        <table id="security-tableau">
+          <thead>
+            <tr><th>Tool</th><th>Critical</th><th>High</th><th>Medium</th><th>Low</th><th>Status</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:20px">
+      <h3>Dernière mise à jour</h3>
+      <p style="color:var(--text-dim); font-size:0.85rem; margin:0" id="security-derniere-maj"></p>
+    </div>
   </section>
 
   <!-- ===== TESTING ===== -->
   <section class="section" id="section-testing">
     <div class="section-title">Testing</div>
     <div class="section-subtitle">Résultats des tests unitaires et d'intégration (JUnit)</div>
-    <div class="placeholder">Section en construction — prochaine étape</div>
+
+    <div class="cards" id="testing-cartes"></div>
+
+    <div class="panel">
+      <h3>Détail par module</h3>
+      <div id="testing-modules"></div>
+    </div>
+
+    <div class="panel" style="margin-top:20px">
+      <h3>Dernière mise à jour</h3>
+      <p style="color:var(--text-dim); font-size:0.85rem; margin:0" id="testing-derniere-maj"></p>
+    </div>
   </section>
 
   <!-- ===== CI/CD ===== -->
   <section class="section" id="section-cicd">
     <div class="section-title">CI/CD</div>
     <div class="section-subtitle">Pipelines GitHub Actions</div>
-    <div class="placeholder">Section en construction — prochaine étape</div>
+
+    <div class="grid-2" style="grid-template-columns: 1fr 1fr 1fr;">
+      <div class="panel">
+        <h3>CI — Build & Analyze</h3>
+        <img src="https://github.com/ines123321/industrial-maintenance-agent/actions/workflows/ci.yml/badge.svg" alt="CI status">
+        <p style="color:var(--text-dim); font-size:0.82rem; margin:12px 0 0">
+          SAST (SonarCloud, Dependency-Check), tests unitaires/intégration.<br>
+          Déclenché à chaque push / PR sur <code>main</code>.
+        </p>
+        <a href="https://github.com/ines123321/industrial-maintenance-agent/actions/workflows/ci.yml" target="_blank">Voir les runs →</a>
+      </div>
+
+      <div class="panel">
+        <h3>Evaluation — RAG/MCP/Injection</h3>
+        <img src="https://github.com/ines123321/industrial-maintenance-agent/actions/workflows/evaluation.yml/badge.svg" alt="Evaluation status">
+        <p style="color:var(--text-dim); font-size:0.82rem; margin:12px 0 0">
+          Évaluation qualité réelle contre Groq (dataset de 16 cas).<br>
+          Déclenché sur PR ou manuellement.
+        </p>
+        <a href="https://github.com/ines123321/industrial-maintenance-agent/actions/workflows/evaluation.yml" target="_blank">Voir les runs →</a>
+      </div>
+
+      <div class="panel">
+        <h3>DAST — OWASP ZAP</h3>
+        <img src="https://github.com/ines123321/industrial-maintenance-agent/actions/workflows/dast.yml/badge.svg" alt="DAST status">
+        <p style="color:var(--text-dim); font-size:0.82rem; margin:12px 0 0">
+          Scan API contre <code>/api/chat</code>, profil stubé (zéro coût Groq).<br>
+          Déclenché manuellement.
+        </p>
+        <a href="https://github.com/ines123321/industrial-maintenance-agent/actions/workflows/dast.yml" target="_blank">Voir les runs →</a>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:20px">
+      <h3>Architecture du pipeline</h3>
+      <table>
+        <thead>
+          <tr><th>Workflow</th><th>Déclencheur</th><th>Coût Groq</th><th>Rapports produits</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>ci.yml</td>
+            <td>push / PR sur main</td>
+            <td>Zéro</td>
+            <td>security.json, tests.json</td>
+          </tr>
+          <tr>
+            <td>evaluation.yml</td>
+            <td>PR / manuel</td>
+            <td>Oui (16 cas)</td>
+            <td>evaluation.json, history.jsonl</td>
+          </tr>
+          <tr>
+            <td>dast.yml</td>
+            <td>manuel</td>
+            <td>Zéro (profil stubé)</td>
+            <td>security.json (entrée OWASP ZAP)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </section>
 
 </main>
@@ -229,6 +338,8 @@ async function init() {
 
     afficherOverview(historique, security, tests);
     afficherQuality(historique);
+    afficherSecurity(security); 
+    afficherTesting(tests); 
 
   } catch (e) {
     document.getElementById("erreur-globale").style.display = "block";
@@ -392,6 +503,128 @@ function afficherQuality(historique) {
       <td>${(d.tauxHallucination * 100).toFixed(1)}%</td>
     </tr>
   `).join("");
+}
+
+function afficherSecurity(security) {
+  const totaux = { critical: 0, high: 0, medium: 0, low: 0 };
+  security.tools.forEach(t => {
+    totaux.critical += t.critical;
+    totaux.high += t.high;
+    totaux.medium += t.medium;
+    totaux.low += t.low;
+  });
+
+  // ----- Cartes -----
+  const totalVulns = totaux.critical + totaux.high + totaux.medium + totaux.low;
+  const outilsPass = security.tools.filter(t => t.status === "PASS").length;
+
+  document.getElementById("security-cartes").innerHTML = `
+    <div class="card">
+      <div class="value ${totaux.critical === 0 ? 'ok' : 'fail'}">${totaux.critical}</div>
+      <div class="label">Critical</div>
+    </div>
+    <div class="card">
+      <div class="value ${totaux.high === 0 ? 'ok' : 'fail'}">${totaux.high}</div>
+      <div class="label">High</div>
+    </div>
+    <div class="card">
+      <div class="value ${totaux.medium === 0 ? 'ok' : 'warn'}">${totaux.medium}</div>
+      <div class="label">Medium</div>
+    </div>
+    <div class="card">
+      <div class="value">${totaux.low}</div>
+      <div class="label">Low</div>
+    </div>
+    <div class="card">
+      <div class="value ${outilsPass === security.tools.length ? 'ok' : 'fail'}">${outilsPass}/${security.tools.length}</div>
+      <div class="label">Outils PASS</div>
+    </div>
+  `;
+
+  // ----- Donut -----
+  new Chart(document.getElementById("security-donut"), {
+    type: "doughnut",
+    data: {
+      labels: ["Critical", "High", "Medium", "Low"],
+      datasets: [{
+        data: [totaux.critical, totaux.high, totaux.medium, totaux.low],
+        backgroundColor: ["#f85149", "#d29922", "#4f8cff", "#2ea043"],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      plugins: {
+        legend: { position: "bottom", labels: { color: "#e4e6eb" } }
+      }
+    }
+  });
+
+  // ----- Tableau -----
+  document.querySelector("#security-tableau tbody").innerHTML = security.tools.map(t => `
+    <tr>
+      <td>${t.name}</td>
+      <td>${t.critical}</td>
+      <td>${t.high}</td>
+      <td>${t.medium}</td>
+      <td>${t.low}</td>
+      <td><span class="badge ${t.status === 'PASS' ? 'badge-pass' : 'badge-fail'}">${t.status}</span></td>
+    </tr>
+  `).join("");
+
+  // ----- Dernière mise à jour -----
+  document.getElementById("security-derniere-maj").textContent =
+    `${security.lastUpdated} — commit ${security.tools[0]?.commitSha || "?"}`;
+}
+
+function afficherTesting(tests) {
+  const totalTests = tests.modules.reduce((s, m) => s + m.total, 0);
+  const passedTests = tests.modules.reduce((s, m) => s + m.passed, 0);
+  const failedTests = tests.modules.reduce((s, m) => s + m.failed, 0);
+  const skippedTests = tests.modules.reduce((s, m) => s + m.skipped, 0);
+
+  // ----- Cartes -----
+  document.getElementById("testing-cartes").innerHTML = `
+    <div class="card">
+      <div class="value ${failedTests === 0 ? 'ok' : 'fail'}">${passedTests}/${totalTests}</div>
+      <div class="label">Tests passés (total)</div>
+    </div>
+    <div class="card">
+      <div class="value ${failedTests === 0 ? 'ok' : 'fail'}">${failedTests}</div>
+      <div class="label">Échecs</div>
+    </div>
+    <div class="card">
+      <div class="value ${skippedTests === 0 ? 'ok' : 'warn'}">${skippedTests}</div>
+      <div class="label">Ignorés</div>
+    </div>
+    <div class="card">
+      <div class="value">${tests.modules.length}</div>
+      <div class="label">Modules testés</div>
+    </div>
+  `;
+
+  // ----- Détail par module (barres de progression) -----
+  document.getElementById("testing-modules").innerHTML = tests.modules.map(m => {
+    const pctPassed = m.total ? (m.passed / m.total * 100) : 0;
+    const pctFailed = m.total ? (m.failed / m.total * 100) : 0;
+    const pctSkipped = m.total ? (m.skipped / m.total * 100) : 0;
+    return `
+      <div class="module-bloc">
+        <div class="module-header">
+          <span class="nom">${m.name}</span>
+          <span class="chiffre">${m.passed}/${m.total} passés${m.failed ? ` · ${m.failed} échecs` : ''}${m.skipped ? ` · ${m.skipped} ignorés` : ''}</span>
+        </div>
+        <div class="barre">
+          <div class="passed" style="width:${pctPassed}%"></div>
+          <div class="failed" style="width:${pctFailed}%"></div>
+          <div class="skipped" style="width:${pctSkipped}%"></div>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  // ----- Dernière mise à jour -----
+  document.getElementById("testing-derniere-maj").textContent =
+    `${tests.lastUpdated} — commit ${tests.commitSha}`;
 }
 init();
 </script>
