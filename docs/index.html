@@ -126,11 +126,11 @@
 
 <nav class="sidebar">
   <h1>AI AGENT <span>DEVSECOPS</span><br>DASHBOARD</h1>
-  <div class="nav-item active" data-section="overview">📊&nbsp; Overview</div>
-  <div class="nav-item" data-section="quality">🧪&nbsp; Quality</div>
-  <div class="nav-item" data-section="security">🔒&nbsp; Security</div>
-  <div class="nav-item" data-section="testing">✅&nbsp; Testing</div>
-  <div class="nav-item" data-section="cicd">⚙️&nbsp; CI/CD</div>
+  <div class="nav-item active" data-section="overview">&nbsp; Overview</div>
+  <div class="nav-item" data-section="quality">&nbsp; Quality</div>
+  <div class="nav-item" data-section="security">&nbsp; Security</div>
+  <div class="nav-item" data-section="testing">&nbsp; Testing</div>
+  <div class="nav-item" data-section="cicd">&nbsp; Workflows</div>
 </nav>
 
 <main class="main">
@@ -201,7 +201,7 @@
         <h3>Détail par outil</h3>
         <table id="security-tableau">
           <thead>
-            <tr><th>Tool</th><th>Critical</th><th>High</th><th>Medium</th><th>Low</th><th>Status</th></tr>
+            <tr><th>Tool</th><th>Type</th><th>Critical</th><th>High</th><th>Medium</th><th>Low</th><th>Status</th></tr>
           </thead>
           <tbody></tbody>
         </table>
@@ -234,7 +234,7 @@
 
   <!-- ===== CI/CD ===== -->
   <section class="section" id="section-cicd">
-    <div class="section-title">CI/CD</div>
+    <div class="section-title">Workflows</div>
     <div class="section-subtitle">Pipelines GitHub Actions</div>
 
     <div class="grid-2" style="grid-template-columns: 1fr 1fr 1fr;">
@@ -561,15 +561,16 @@ function afficherSecurity(security) {
 
   // ----- Tableau -----
   document.querySelector("#security-tableau tbody").innerHTML = security.tools.map(t => `
-    <tr>
-      <td>${t.name}</td>
-      <td>${t.critical}</td>
-      <td>${t.high}</td>
-      <td>${t.medium}</td>
-      <td>${t.low}</td>
-      <td><span class="badge ${t.status === 'PASS' ? 'badge-pass' : 'badge-fail'}">${t.status}</span></td>
-    </tr>
-  `).join("");
+  <tr>
+    <td>${t.name}</td>
+    <td>${t.type || '—'}</td>
+    <td>${t.critical}</td>
+    <td>${t.high}</td>
+    <td>${t.medium}</td>
+    <td>${t.low}</td>
+    <td><span class="badge ${t.status === 'PASS' ? 'badge-pass' : 'badge-fail'}">${t.status}</span></td>
+  </tr>
+`).join("");
 
   // ----- Dernière mise à jour -----
   document.getElementById("security-derniere-maj").textContent =

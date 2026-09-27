@@ -87,7 +87,7 @@ jobs:
           M=$(jq '[.site[]?.alerts[]?.riskcode] | map(select(.=="2")) | length' report_json.json)
           L=$(jq '[.site[]?.alerts[]?.riskcode] | map(select(.=="1" or .=="0")) | length' report_json.json)
           STATUT="PASS"; [ "$H" -gt 0 ] && STATUT="FAIL"
-          bash scripts/update-security-json.sh "OWASP ZAP" 0 "$H" "$M" "$L" "$STATUT"
+          bash scripts/update-security-json.sh "OWASP ZAP" "DAST" 0 "$H" "$M" "$L" "$STATUT"
 
       - name: Committer security.json (ZAP)
         if: always()

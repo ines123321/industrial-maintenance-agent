@@ -70,7 +70,7 @@ jobs:
           MAJOR=$(echo "$RESULT" | jq -r '[.component.measures[] | select(.metric=="major_violations")][0].value // "0"')
           MINOR=$(echo "$RESULT" | jq -r '[.component.measures[] | select(.metric=="minor_violations")][0].value // "0"')
           CRIT_TOTAL=$((BLOCKER + CRITICAL))
-          bash scripts/update-security-json.sh "SonarQube" "$CRIT_TOTAL" "$MAJOR" "$MINOR" 0 "PASS"
+          bash scripts/update-security-json.sh "SonarQube" "SAST" "$CRIT_TOTAL" "$MAJOR" "$MINOR" 0 "PASS"
 
       - name: Extraire les métriques Dependency-Check
         working-directory: .
@@ -80,7 +80,7 @@ jobs:
           H=$(jq '[.dependencies[]?.vulnerabilities[]?.severity] | map(select(.=="HIGH")) | length' "$FICHIER")
           M=$(jq '[.dependencies[]?.vulnerabilities[]?.severity] | map(select(.=="MEDIUM")) | length' "$FICHIER")
           L=$(jq '[.dependencies[]?.vulnerabilities[]?.severity] | map(select(.=="LOW")) | length' "$FICHIER")
-          bash scripts/update-security-json.sh "Dependency-Check" "$C" "$H" "$M" "$L" "PASS"
+          bash scripts/update-security-json.sh "Dependency-Check" "SAST" "$C" "$H" "$M" "$L" "PASS"
 
       - name: Committer security.json (Sonar + Dependency-Check)
         if: always()
