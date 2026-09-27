@@ -3,16 +3,16 @@
   "commitSha": "dc89341",
   "modules": [
     {
-      "name": "maintenance-agent-service",
-      "total": 5,
-      "passed": 5,
+      "name": "maintenance-mcp-server",
+      "total": 33,
+      "passed": 33,
       "failed": 0,
       "skipped": 0
     },
     {
-      "name": "maintenance-mcp-server",
-      "total": 33,
-      "passed": 33,
+      "name": "maintenance-agent-service",
+      "total": 5,
+      "passed": 5,
       "failed": 0,
       "skipped": 0
     }
