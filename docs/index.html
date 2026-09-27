@@ -140,11 +140,33 @@
     </div>
   </section>
 
-  <!-- ===== QUALITY ===== -->
+   <!-- ===== QUALITY ===== -->
   <section class="section" id="section-quality">
     <div class="section-title">Quality</div>
     <div class="section-subtitle">Évaluation RAG / MCP / anti-hallucination dans le temps</div>
-    <div class="placeholder">Section en construction — prochaine étape</div>
+
+    <div class="cards" id="quality-cartes"></div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <h3>Taux de réussite dans le temps</h3>
+        <canvas id="quality-graph-reussite" height="180"></canvas>
+      </div>
+      <div class="panel">
+        <h3>Taux de hallucination dans le temps</h3>
+        <canvas id="quality-graph-hallucination" height="180"></canvas>
+      </div>
+    </div>
+
+    <div class="panel">
+     <h3>Historique détaillé</h3>
+      <table id="quality-tableau">
+        <thead>
+          <tr><th>Date</th><th>Commit</th><th>Cas réussis</th><th>Relevancy</th><th>Hallucination</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
   </section>
 
   <!-- ===== SECURITY ===== -->
@@ -206,6 +228,7 @@ async function init() {
     ]);
 
     afficherOverview(historique, security, tests);
+    afficherQuality(historique);
 
   } catch (e) {
     document.getElementById("erreur-globale").style.display = "block";
@@ -289,6 +312,87 @@ function afficherOverview(historique, security, tests) {
   });
 }
 
+function afficherQuality(historique) {
+  const dernier = historique[historique.length - 1];
+  const labels = historique.map(d => `${d.date} (${d.commitSha})`);
+
+  // ----- Cartes -----
+  document.getElementById("quality-cartes").innerHTML = `
+    <div class="card">
+      <div class="value ${dernier.casReussis === dernier.casTotal ? 'ok' : 'warn'}">${dernier.casReussis}/${dernier.casTotal}</div>
+      <div class="label">Dernier run — cas réussis</div>
+    </div>
+    <div class="card">
+      <div class="value ok">${(dernier.tauxRelevancy * 100).toFixed(0)}%</div>
+      <div class="label">Pertinence RAG</div>
+    </div>
+    <div class="card">
+      <div class="value ${dernier.tauxHallucination === 0 ? 'ok' : 'warn'}">${(dernier.tauxHallucination * 100).toFixed(1)}%</div>
+      <div class="label">Taux hallucination</div>
+    </div>
+    <div class="card">
+      <div class="value">${historique.length}</div>
+      <div class="label">Runs enregistrés</div>
+    </div>
+  `;
+
+  // ----- Courbe réussite -----
+  new Chart(document.getElementById("quality-graph-reussite"), {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [{
+        label: "Cas réussis / total (%)",
+        data: historique.map(d => (d.casReussis / d.casTotal * 100)),
+        borderColor: "#2ea043",
+        backgroundColor: "rgba(46,160,67,0.1)",
+        fill: true,
+        tension: 0.2
+      }]
+    },
+    options: {
+      scales: {
+        y: { min: 0, max: 100, ticks: { callback: v => v + "%", color: "#8a8f9c" }, grid: { color: "#262b38" } },
+        x: { ticks: { color: "#8a8f9c" }, grid: { color: "#262b38" } }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+
+  // ----- Courbe hallucination -----
+  new Chart(document.getElementById("quality-graph-hallucination"), {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [{
+        label: "Taux hallucination (%)",
+        data: historique.map(d => (d.tauxHallucination * 100)),
+        borderColor: "#f85149",
+        backgroundColor: "rgba(248,81,73,0.1)",
+        fill: true,
+        tension: 0.2
+      }]
+    },
+    options: {
+      scales: {
+        y: { min: 0, max: 100, ticks: { callback: v => v + "%", color: "#8a8f9c" }, grid: { color: "#262b38" } },
+        x: { ticks: { color: "#8a8f9c" }, grid: { color: "#262b38" } }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+
+  // ----- Tableau -----
+  document.querySelector("#quality-tableau tbody").innerHTML = historique.slice().reverse().map(d => `
+    <tr>
+      <td>${d.date}</td>
+      <td><a href="https://github.com/ines123321/industrial-maintenance-agent/commit/${d.commitSha}" target="_blank">${d.commitSha}</a></td>
+      <td>${d.casReussis}/${d.casTotal}</td>
+      <td>${(d.tauxRelevancy * 100).toFixed(0)}%</td>
+      <td>${(d.tauxHallucination * 100).toFixed(1)}%</td>
+    </tr>
+  `).join("");
+}
 init();
 </script>
 
