@@ -19,7 +19,17 @@
       "low": 0,
       "status": "PASS",
       "updatedAt": "2026-09-27",
-      "commitSha": "0a1a4e0"
+      "commitSha": "df0a223"
+    },
+    {
+      "name": "Dependency-Check",
+      "critical": 0,
+      "high": 0,
+      "medium": 1,
+      "low": 0,
+      "status": "PASS",
+      "updatedAt": "2026-09-27",
+      "commitSha": "df0a223"
     }
   ]
 }
