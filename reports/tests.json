@@ -8,6 +8,13 @@
       "passed": 33,
       "failed": 0,
       "skipped": 0
+    },
+    {
+      "name": "maintenance-agent-service",
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0
     }
   ]
 }
