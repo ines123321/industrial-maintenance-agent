@@ -1,1 +1,155 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Maintenance Agent</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  body { font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; max-width: 960px; margin: 40px auto; padding: 0 20px; color: #1a1a1a; }
+  h1 { font-size: 1.6rem; }
+  h2 { font-size: 1.1rem; margin-top: 40px; color: #444; }
+  .cards { display: flex; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+  .card { flex: 1; min-width: 160px; border: 1px solid #ddd; border-radius: 8px; padding: 16px; }
+  .card .value { font-size: 1.8rem; font-weight: bold; }
+  .card .label { font-size: 0.85rem; color: #666; }
+  .ok { color: #1a7f37; }
+  .warn { color: #b35900; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.9rem; }
+  th, td { border-bottom: 1px solid #eee; padding: 8px; text-align: left; }
+  th { color: #666; font-weight: 600; }
+  a { color: #0969da; }
+  #erreur { color: #b30000; display: none; }
+</style>
+</head>
+<body>
 
+<h1>📊 Dashboard qualité — Agent de maintenance industrielle</h1>
+<p>Évolution des scores d'évaluation (RAG / MCP / anti-hallucination) au fil des runs CI.</p>
+
+<div id="erreur">Impossible de charger l'historique. Vérifie que <code>reports/history.jsonl</code> existe bien sur la branche main.</div>
+
+<div class="cards" id="cartes"></div>
+
+<h2>Taux de réussite dans le temps</h2>
+<canvas id="graphReussite" height="90"></canvas>
+
+<h2>Taux de hallucination dans le temps</h2>
+<canvas id="graphHallucination" height="90"></canvas>
+
+<h2>Historique détaillé</h2>
+<table id="tableauHistorique">
+  <thead>
+    <tr><th>Date</th><th>Commit</th><th>Cas réussis</th><th>Relevancy</th><th>Hallucination</th></tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+const URL_HISTORIQUE = "https://raw.githubusercontent.com/ines123321/industrial-maintenance-agent/main/maintenance-agent-service/reports/history.jsonl";
+
+async function chargerHistorique() {
+  try {
+    const reponse = await fetch(URL_HISTORIQUE + "?t=" + Date.now());
+    if (!reponse.ok) throw new Error("HTTP " + reponse.status);
+    const texte = await reponse.text();
+
+    const lignes = texte.trim().split("\n").filter(l => l.trim().length > 0);
+    const donnees = lignes.map(l => JSON.parse(l));
+
+    afficherCartes(donnees);
+    afficherGraphiques(donnees);
+    afficherTableau(donnees);
+  } catch (e) {
+    document.getElementById("erreur").style.display = "block";
+    console.error(e);
+  }
+}
+
+function afficherCartes(donnees) {
+  const dernier = donnees[donnees.length - 1];
+  const conteneur = document.getElementById("cartes");
+  const tauxReussite = (dernier.casReussis / dernier.casTotal * 100).toFixed(0);
+  const classeReussite = dernier.casReussis === dernier.casTotal ? "ok" : "warn";
+  const classeHallu = dernier.tauxHallucination === 0 ? "ok" : "warn";
+
+  conteneur.innerHTML = `
+    <div class="card">
+      <div class="value ${classeReussite}">${dernier.casReussis}/${dernier.casTotal}</div>
+      <div class="label">Cas réussis (${tauxReussite}%)</div>
+    </div>
+    <div class="card">
+      <div class="value ok">${(dernier.tauxRelevancy * 100).toFixed(0)}%</div>
+      <div class="label">Pertinence RAG</div>
+    </div>
+    <div class="card">
+      <div class="value ${classeHallu}">${(dernier.tauxHallucination * 100).toFixed(1)}%</div>
+      <div class="label">Taux hallucination</div>
+    </div>
+    <div class="card">
+      <div class="value">${donnees.length}</div>
+      <div class="label">Runs enregistrés</div>
+    </div>
+  `;
+}
+
+function afficherGraphiques(donnees) {
+  const labels = donnees.map(d => `${d.date} (${d.commitSha})`);
+
+  new Chart(document.getElementById("graphReussite"), {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [{
+        label: "Cas réussis / total",
+        data: donnees.map(d => (d.casReussis / d.casTotal * 100)),
+        borderColor: "#1a7f37",
+        backgroundColor: "rgba(26,127,55,0.1)",
+        fill: true,
+        tension: 0.2
+      }]
+    },
+    options: {
+      scales: { y: { min: 0, max: 100, ticks: { callback: v => v + "%" } } },
+      plugins: { legend: { display: false } }
+    }
+  });
+
+  new Chart(document.getElementById("graphHallucination"), {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [{
+        label: "Taux hallucination",
+        data: donnees.map(d => (d.tauxHallucination * 100)),
+        borderColor: "#b30000",
+        backgroundColor: "rgba(179,0,0,0.1)",
+        fill: true,
+        tension: 0.2
+      }]
+    },
+    options: {
+      scales: { y: { min: 0, max: 100, ticks: { callback: v => v + "%" } } },
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
+function afficherTableau(donnees) {
+  const corps = document.querySelector("#tableauHistorique tbody");
+  corps.innerHTML = donnees.slice().reverse().map(d => `
+    <tr>
+      <td>${d.date}</td>
+      <td><a href="https://github.com/ines123321/industrial-maintenance-agent/commit/${d.commitSha}" target="_blank">${d.commitSha}</a></td>
+      <td>${d.casReussis}/${d.casTotal}</td>
+      <td>${(d.tauxRelevancy * 100).toFixed(0)}%</td>
+      <td>${(d.tauxHallucination * 100).toFixed(1)}%</td>
+    </tr>
+  `).join("");
+}
+
+chargerHistorique();
+</script>
+
+</body>
+</html>
