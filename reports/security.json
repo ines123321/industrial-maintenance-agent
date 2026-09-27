@@ -2,16 +2,6 @@
   "lastUpdated": "2026-09-27",
   "tools": [
     {
-      "name": "OWASP ZAP",
-      "critical": 0,
-      "high": 0,
-      "medium": 0,
-      "low": 3,
-      "status": "PASS",
-      "updatedAt": "2026-09-27",
-      "commitSha": "6ffb464"
-    },
-    {
       "name": "SonarQube",
       "type": "SAST",
       "critical": 0,
@@ -32,6 +22,17 @@
       "status": "PASS",
       "updatedAt": "2026-09-27",
       "commitSha": "022ed82"
+    },
+    {
+      "name": "OWASP ZAP",
+      "type": "DAST",
+      "critical": 0,
+      "high": 0,
+      "medium": 0,
+      "low": 3,
+      "status": "PASS",
+      "updatedAt": "2026-09-27",
+      "commitSha": "3a052e3"
     }
   ]
 }
